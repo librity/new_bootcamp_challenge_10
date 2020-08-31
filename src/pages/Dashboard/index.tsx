@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-
-import Header from '../../components/Header';
+import React, { useState, useEffect, useCallback } from 'react';
 
 import api from '../../services/api';
 
+import Header from '../../components/Header';
 import Food from '../../components/Food';
 import ModalAddFood from '../../components/ModalAddFood';
 import ModalEditFood from '../../components/ModalEditFood';
@@ -21,62 +20,96 @@ interface IFoodPlate {
 
 const Dashboard: React.FC = () => {
   const [foods, setFoods] = useState<IFoodPlate[]>([]);
-  const [editingFood, setEditingFood] = useState<IFoodPlate>({} as IFoodPlate);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editableFood, setEditableFood] = useState<IFoodPlate>(
+    {} as IFoodPlate,
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadFoods(): Promise<void> {
-      // TODO LOAD FOODS
+      await api.get('foods').then(response => setFoods(response.data));
     }
 
     loadFoods();
   }, []);
 
-  async function handleAddFood(
-    food: Omit<IFoodPlate, 'id' | 'available'>,
-  ): Promise<void> {
-    try {
-      // TODO ADD A NEW FOOD PLATE TO THE API
-    } catch (err) {
-      console.log(err);
-    }
-  }
+  const handleAddFood = useCallback(
+    async (food: Omit<IFoodPlate, 'id' | 'available'>): Promise<void> => {
+      try {
+        const id = foods.length + 1;
 
-  async function handleUpdateFood(
-    food: Omit<IFoodPlate, 'id' | 'available'>,
-  ): Promise<void> {
-    // TODO UPDATE A FOOD PLATE ON THE API
-  }
+        const newFoods = { id, ...food, available: true };
 
-  async function handleDeleteFood(id: number): Promise<void> {
-    // TODO DELETE A FOOD PLATE FROM THE API
-  }
+        const response = await api.post('foods', newFoods);
 
-  function toggleModal(): void {
-    setModalOpen(!modalOpen);
-  }
+        setFoods([...foods, response.data]);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [foods],
+  );
 
-  function toggleEditModal(): void {
-    setEditModalOpen(!editModalOpen);
-  }
+  const handleUpdateFood = useCallback(
+    async (food: Omit<IFoodPlate, 'id' | 'available'>): Promise<void> => {
+      try {
+        const { id, available } = editableFood;
 
-  function handleEditFood(food: IFoodPlate): void {
-    // TODO SET THE CURRENT EDITING FOOD ID IN THE STATE
-  }
+        const newFoods = { id, ...food, available: true };
+
+        const response = await api.put(`/foods/${editableFood.id}`, newFoods);
+
+        const updatedState = foods.filter(item => item.id !== id);
+
+        setFoods([...updatedState, response.data]);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [foods, editableFood],
+  );
+
+  const handleDeleteFood = useCallback(
+    async (id: number): Promise<void> => {
+      try {
+        await api.delete(`/foods/${id}`);
+
+        const updatedState = foods.filter(food => food.id !== id);
+
+        setFoods(updatedState);
+      } catch (err) {
+        console.error(err);
+      }
+    },
+    [foods],
+  );
+
+  const toggleModal = useCallback((): void => {
+    setIsModalOpen(!isModalOpen);
+  }, [isModalOpen]);
+
+  const toggleEditModal = useCallback((): void => {
+    setIsEditModalOpen(!isEditModalOpen);
+  }, [isEditModalOpen]);
+
+  const handleEditFood = useCallback((food: IFoodPlate): void => {
+    setEditableFood(food);
+    setIsEditModalOpen(true);
+  }, []);
 
   return (
     <>
       <Header openModal={toggleModal} />
       <ModalAddFood
-        isOpen={modalOpen}
+        isOpen={isModalOpen}
         setIsOpen={toggleModal}
         handleAddFood={handleAddFood}
       />
       <ModalEditFood
-        isOpen={editModalOpen}
+        isOpen={isEditModalOpen}
         setIsOpen={toggleEditModal}
-        editingFood={editingFood}
+        editableFood={editableFood}
         handleUpdateFood={handleUpdateFood}
       />
 
