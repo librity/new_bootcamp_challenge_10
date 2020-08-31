@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 
 import { FiEdit3, FiTrash } from 'react-icons/fi';
 
@@ -26,19 +26,20 @@ const Food: React.FC<IProps> = ({
 }: IProps) => {
   const [isAvailable, setIsAvailable] = useState(food.available);
 
-  async function toggleAvailable(): Promise<void> {
-    // TODO UPDATE STATUS (available)
-  }
+  const toggleAvailable = useCallback(async (): Promise<void> => {
+    setIsAvailable(!isAvailable);
+  }, [isAvailable]);
 
-  function setEditingFood(): void {
-    // TODO - SET THE ID OF THE CURRENT ITEM TO THE EDITING FOOD AND OPEN MODAL
-  }
+  const setEditingFood = useCallback((): void => {
+    handleEditFood(food);
+  }, [food, handleEditFood]);
 
   return (
     <Container available={isAvailable}>
       <header>
         <img src={food.image} alt={food.name} />
       </header>
+
       <section className="body">
         <h2>{food.name}</h2>
         <p>{food.description}</p>
@@ -46,6 +47,7 @@ const Food: React.FC<IProps> = ({
           R$ <b>{food.price}</b>
         </p>
       </section>
+
       <section className="footer">
         <div className="icon-container">
           <button
